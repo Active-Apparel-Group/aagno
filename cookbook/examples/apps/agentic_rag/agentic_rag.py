@@ -89,7 +89,7 @@ def get_agentic_rag_agent(
             schema="ai",
             embedder=OpenAIEmbedder(id="text-embedding-ada-002", dimensions=1536),
         ),
-        num_documents=3,  # Retrieve 3 most relevant documents
+        num_documents=7,  # Retrieve 7 most relevant documents
     )
 
     # Create the Agent
