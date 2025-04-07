@@ -4,6 +4,8 @@ FROM python:3.11-slim
 # Set environment variables
 ENV PIP_NO_CACHE_DIR=1
 ENV PYTHONUNBUFFERED=1
+ENV PIP_ROOT_USER_ACTION=ignore
+
 
 # Set working directory inside container
 WORKDIR /app
@@ -13,7 +15,7 @@ COPY requirements.lock.txt requirements.lock.txt
 
 # Install uv and dependencies
 RUN pip install uv && \
-    uv pip install -r requirements.lock.txt
+    uv pip install --system -r requirements.lock.txt
 
 # Copy actual app code
 COPY . .

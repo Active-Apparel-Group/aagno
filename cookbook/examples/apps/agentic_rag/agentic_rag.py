@@ -42,8 +42,13 @@ from agno.models.openai import OpenAIChat
 from agno.storage.agent.postgres import PostgresAgentStorage
 from agno.tools.duckduckgo import DuckDuckGoTools
 from agno.vectordb.pgvector import PgVector
+import os
+import logging
 
-db_url = "postgresql+psycopg://ai:ai@localhost:5532/ai"
+db_url = os.environ.get("DATABASE_URL")
+if not db_url:
+    logging.warning("DATABASE_URL not set. Falling back to localhost config.")
+    db_url = "postgresql+psycopg://ai:ai@localhost:5532/ai"
 
 
 def get_agentic_rag_agent(

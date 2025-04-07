@@ -2,3 +2,6 @@
 beautifulsoup4==4.13.3
 pypdf==5.4.0
 psycopg-binary>=3.2.4
+psycopg==3.1.18
+aiofiles==23.2.1
+pgvector==0.2.4

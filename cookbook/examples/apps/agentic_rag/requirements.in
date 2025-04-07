@@ -11,3 +11,6 @@ streamlit
 beautifulsoup4
 pypdf
 psycopg-binary
+psycopg
+pgvector
+aiofiles

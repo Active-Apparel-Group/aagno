@@ -31,22 +31,16 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# Add custom CSS
-
 st.markdown(CUSTOM_CSS, unsafe_allow_html=True)
 
-
 def restart_agent():
-    """Reset the agent and clear chat history"""
     logger.debug("---*--- Restarting agent ---*---")
     st.session_state["agentic_rag_agent"] = None
     st.session_state["agentic_rag_agent_session_id"] = None
     st.session_state["messages"] = []
     st.rerun()
 
-
 def get_reader(file_type: str):
-    """Return appropriate reader based on file type."""
     readers = {
         "pdf": PDFReader(),
         "csv": CSVReader(),
@@ -54,9 +48,7 @@ def get_reader(file_type: str):
     }
     return readers.get(file_type.lower(), None)
 
-
 def initialize_agent(model_id: str):
-    """Initialize or retrieve the Agentic RAG."""
     if (
         "agentic_rag_agent" not in st.session_state
         or st.session_state["agentic_rag_agent"] is None
@@ -70,20 +62,13 @@ def initialize_agent(model_id: str):
         st.session_state["agentic_rag_agent_session_id"] = agent.session_id
     return st.session_state["agentic_rag_agent"]
 
-
 def main():
-    ####################################################################
-    # App header
-    ####################################################################
     st.markdown("<h1 class='main-title'>Agentic RAG </h1>", unsafe_allow_html=True)
     st.markdown(
         "<p class='subtitle'>Your intelligent research assistant powered by Agno</p>",
         unsafe_allow_html=True,
     )
 
-    ####################################################################
-    # Model selector
-    ####################################################################
     model_options = {
         "o3-mini": "openai:o3-mini",
         "gpt-4o": "openai:gpt-4o",
@@ -99,9 +84,6 @@ def main():
     )
     model_id = model_options[selected_model]
 
-    ####################################################################
-    # Initialize Agent
-    ####################################################################
     agentic_rag_agent: Agent
     if (
         "agentic_rag_agent" not in st.session_state
@@ -115,9 +97,6 @@ def main():
     else:
         agentic_rag_agent = st.session_state["agentic_rag_agent"]
 
-    ####################################################################
-    # Load Agent Session from the database
-    ####################################################################
     try:
         st.session_state["agentic_rag_agent_session_id"] = (
             agentic_rag_agent.load_session()
@@ -126,9 +105,6 @@ def main():
         st.warning("Could not create Agent session, is the database running?")
         return
 
-    ####################################################################
-    # Load runs from memory
-    ####################################################################
     agent_runs = agentic_rag_agent.memory.runs
     if len(agent_runs) > 0:
         logger.debug("Loading run history")
@@ -145,9 +121,6 @@ def main():
     if prompt := st.chat_input("👋 Ask me anything!"):
         add_message("user", prompt)
 
-    ####################################################################
-    # Track loaded URLs and files in session state
-    ####################################################################
     if "loaded_urls" not in st.session_state:
         st.session_state.loaded_urls = set()
     if "loaded_files" not in st.session_state:
@@ -157,14 +130,11 @@ def main():
 
     st.sidebar.markdown("#### 📚 Document Management")
     input_url = st.sidebar.text_input("Add URL to Knowledge Base")
-    if (
-        input_url and not prompt and not st.session_state.knowledge_base_initialized
-    ):  # Only load if KB not initialized
+    if input_url and not prompt and not st.session_state.knowledge_base_initialized:
         if input_url not in st.session_state.loaded_urls:
             alert = st.sidebar.info("Processing URLs...", icon="ℹ️")
             if input_url.lower().endswith(".pdf"):
                 try:
-                    # Download PDF to temporary file
                     response = requests.get(input_url, stream=True, verify=False)
                     response.raise_for_status()
 
@@ -177,8 +147,6 @@ def main():
 
                     reader = PDFReader()
                     docs: List[Document] = reader.read(tmp_path)
-
-                    # Clean up temporary file
                     os.unlink(tmp_path)
                 except Exception as e:
                     st.sidebar.error(f"Error processing PDF: {str(e)}")
@@ -197,40 +165,32 @@ def main():
         else:
             st.sidebar.info("URL already loaded in knowledge base")
 
-    uploaded_file = st.sidebar.file_uploader(
-        "Add a Document (.pdf, .csv, or .txt)", key="file_upload"
+    uploaded_files = st.sidebar.file_uploader(
+        "Add Documents (.pdf, .csv, or .txt)", type=["pdf", "csv", "txt"], accept_multiple_files=True
     )
+    if uploaded_files and not prompt:
+        progress_text = "Loading documents into knowledge base..."
+        progress_bar = st.sidebar.progress(0, text=progress_text)
 
-    if (
-        uploaded_file and not prompt and not st.session_state.knowledge_base_initialized
-    ):
-        file_identifier = f"{uploaded_file.name}_{uploaded_file.size}"
-        
-        if file_identifier not in st.session_state.loaded_files:
-            with st.sidebar.status("Processing document...", expanded=True) as status:
-                try:
-                    status.write(f"📥 Received `{uploaded_file.name}`")
-                    file_type = uploaded_file.name.split(".")[-1].lower()
-                    reader = get_reader(file_type)
+        total_files = len(uploaded_files)
+        for idx, uploaded_file in enumerate(uploaded_files):
+            file_identifier = f"{uploaded_file.name}_{uploaded_file.size}"
+            if file_identifier not in st.session_state.loaded_files:
+                file_type = uploaded_file.name.split(".")[-1].lower()
+                reader = get_reader(file_type)
+                if reader:
+                    try:
+                        docs = reader.read(uploaded_file)
+                        agentic_rag_agent.knowledge.load_documents(docs, upsert=True)
+                        st.session_state.loaded_files.add(file_identifier)
+                        st.toast(f"✅ {uploaded_file.name} loaded", icon="📄")
+                    except Exception as e:
+                        st.toast(f"❌ Failed to load {uploaded_file.name}: {e}", icon="⚠️")
+            progress_bar.progress((idx + 1) / total_files, text=progress_text)
 
-                    if not reader:
-                        raise ValueError(f"No reader found for file type: {file_type}")
-
-                    status.write("📄 Reading content from file...")
-                    docs = reader.read(uploaded_file)
-
-                    status.write("🔁 Uploading to vector DB...")
-                    agentic_rag_agent.knowledge.load_documents(docs, upsert=True)
-
-                    st.session_state.loaded_files.add(file_identifier)
-                    st.session_state.knowledge_base_initialized = True
-
-                    status.update(label="✅ Upload complete!", state="complete", expanded=False)
-                except Exception as e:
-                    status.update(label="❌ Failed to process document", state="error")
-                    st.sidebar.error(f"Error: {str(e)}")
-        else:
-            st.sidebar.info(f"{uploaded_file.name} already loaded in knowledge base")
+        progress_bar.empty()
+        st.sidebar.success("All documents added to knowledge base")
+        st.session_state.knowledge_base_initialized = True
 
     # Safe clear mechanism
     if "confirm_clear_kb" not in st.session_state:
@@ -256,9 +216,6 @@ def main():
                 if st.button("❌ Cancel"):
                     st.session_state.confirm_clear_kb = False
 
-    ###############################################################
-    # Sample Question
-    ###############################################################
     st.sidebar.markdown("#### ❓ Sample Questions")
     if st.sidebar.button("📝 Summarize"):
         add_message(
@@ -266,15 +223,10 @@ def main():
             "Can you summarize what is currently in the knowledge base (use `search_knowledge_base` tool)?",
         )
 
-    ###############################################################
-    # Utility buttons
-    ###############################################################
     st.sidebar.markdown("#### 🛠️ Utilities")
-    col1, col2 = st.sidebar.columns([1, 1])  # Equal width columns
+    col1, col2 = st.sidebar.columns([1, 1])
     with col1:
-        if st.sidebar.button(
-            "🔄 New Chat", use_container_width=True
-        ):  # Added use_container_width
+        if st.sidebar.button("🔄 New Chat", use_container_width=True):
             restart_agent()
     with col2:
         if st.sidebar.download_button(
@@ -282,46 +234,35 @@ def main():
             export_chat_history(),
             file_name="rag_chat_history.md",
             mime="text/markdown",
-            use_container_width=True,  # Added use_container_width
+            use_container_width=True,
         ):
             st.sidebar.success("Chat history exported!")
 
-    ####################################################################
-    # Display chat history
-    ####################################################################
     for message in st.session_state["messages"]:
         if message["role"] in ["user", "assistant"]:
             _content = message["content"]
             if _content is not None:
                 with st.chat_message(message["role"]):
-                    # Display tool calls if they exist in the message
                     if "tool_calls" in message and message["tool_calls"]:
                         display_tool_calls(st.empty(), message["tool_calls"])
                     st.markdown(_content)
 
-    ####################################################################
-    # Generate response for user message
-    ####################################################################
     last_message = (
         st.session_state["messages"][-1] if st.session_state["messages"] else None
     )
     if last_message and last_message.get("role") == "user":
         question = last_message["content"]
         with st.chat_message("assistant"):
-            # Create container for tool calls
             tool_calls_container = st.empty()
             resp_container = st.empty()
             with st.spinner("🤔 Thinking..."):
                 response = ""
                 try:
-                    # Run the agent and stream the response
                     run_response = agentic_rag_agent.run(question, stream=True)
                     for _resp_chunk in run_response:
-                        # Display tool calls if available
                         if _resp_chunk.tools and len(_resp_chunk.tools) > 0:
                             display_tool_calls(tool_calls_container, _resp_chunk.tools)
 
-                        # Display response
                         if _resp_chunk.content is not None:
                             response += _resp_chunk.content
                             resp_container.markdown(response)
@@ -334,16 +275,8 @@ def main():
                     add_message("assistant", error_message)
                     st.error(error_message)
 
-    ####################################################################
-    # Session selector
-    ####################################################################
     session_selector_widget(agentic_rag_agent, model_id)
     rename_session_widget(agentic_rag_agent)
-
-    ####################################################################
-    # About section
-    ####################################################################
     about_widget()
-
 
 main()
