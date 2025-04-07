@@ -200,30 +200,62 @@ def main():
     uploaded_file = st.sidebar.file_uploader(
         "Add a Document (.pdf, .csv, or .txt)", key="file_upload"
     )
+
     if (
         uploaded_file and not prompt and not st.session_state.knowledge_base_initialized
-    ):  # Only load if KB not initialized
+    ):
         file_identifier = f"{uploaded_file.name}_{uploaded_file.size}"
+        
         if file_identifier not in st.session_state.loaded_files:
-            alert = st.sidebar.info("Processing document...", icon="ℹ️")
-            file_type = uploaded_file.name.split(".")[-1].lower()
-            reader = get_reader(file_type)
-            if reader:
-                docs = reader.read(uploaded_file)
-                agentic_rag_agent.knowledge.load_documents(docs, upsert=True)
-                st.session_state.loaded_files.add(file_identifier)
-                st.sidebar.success(f"{uploaded_file.name} added to knowledge base")
-                st.session_state.knowledge_base_initialized = True
-            alert.empty()
+            with st.sidebar.status("Processing document...", expanded=True) as status:
+                try:
+                    status.write(f"📥 Received `{uploaded_file.name}`")
+                    file_type = uploaded_file.name.split(".")[-1].lower()
+                    reader = get_reader(file_type)
+
+                    if not reader:
+                        raise ValueError(f"No reader found for file type: {file_type}")
+
+                    status.write("📄 Reading content from file...")
+                    docs = reader.read(uploaded_file)
+
+                    status.write("🔁 Uploading to vector DB...")
+                    agentic_rag_agent.knowledge.load_documents(docs, upsert=True)
+
+                    st.session_state.loaded_files.add(file_identifier)
+                    st.session_state.knowledge_base_initialized = True
+
+                    status.update(label="✅ Upload complete!", state="complete", expanded=False)
+                except Exception as e:
+                    status.update(label="❌ Failed to process document", state="error")
+                    st.sidebar.error(f"Error: {str(e)}")
         else:
             st.sidebar.info(f"{uploaded_file.name} already loaded in knowledge base")
 
-    if st.sidebar.button("Clear Knowledge Base"):
-        agentic_rag_agent.knowledge.vector_db.delete()
-        st.session_state.loaded_urls.clear()
-        st.session_state.loaded_files.clear()
-        st.session_state.knowledge_base_initialized = False  # Reset initialization flag
-        st.sidebar.success("Knowledge base cleared")
+    # Safe clear mechanism
+    if "confirm_clear_kb" not in st.session_state:
+        st.session_state.confirm_clear_kb = False
+
+    with st.sidebar:
+        st.markdown("#### 🚨 Dangerous Actions")
+        if not st.session_state.confirm_clear_kb:
+            if st.button("🧨 Clear Knowledge Base", type="primary"):
+                st.session_state.confirm_clear_kb = True
+                st.warning("Are you sure? Click again to confirm.")
+        else:
+            col1, col2 = st.columns([1, 1])
+            with col1:
+                if st.button("✅ Confirm Clear"):
+                    agentic_rag_agent.knowledge.vector_db.delete()
+                    st.session_state.loaded_urls.clear()
+                    st.session_state.loaded_files.clear()
+                    st.session_state.knowledge_base_initialized = False
+                    st.success("Knowledge base cleared.")
+                    st.session_state.confirm_clear_kb = False
+            with col2:
+                if st.button("❌ Cancel"):
+                    st.session_state.confirm_clear_kb = False
+
     ###############################################################
     # Sample Question
     ###############################################################

@@ -1,0 +1,4 @@
+# constraints.txt
+beautifulsoup4==4.13.3
+pypdf==5.4.0
+psycopg-binary>=3.2.4

@@ -7,3 +7,7 @@ nest_asyncio
 openai
 sqlalchemy
 streamlit
+# Manually required but not resolved automatically
+beautifulsoup4
+pypdf
+psycopg-binary
