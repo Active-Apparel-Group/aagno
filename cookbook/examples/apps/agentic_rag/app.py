@@ -21,7 +21,6 @@ from agno.document.chunking.document import DocumentChunking
 from agno.document.chunking.fixed import FixedSizeChunking
 from agno.document.chunking.recursive import RecursiveChunking
 from agno.document.chunking.semantic import SemanticChunking
-from agno.document.chunking.strategy import ChunkingStrategy
 from agno.utils.log import logger
 from utils import (
     CUSTOM_CSS,
