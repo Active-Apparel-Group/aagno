@@ -67,9 +67,7 @@ def get_reader(file_type: str):
         "csv": CSVReader(chunking_strategy=chunking_strategy),
         "txt": TextReader(chunking_strategy=chunking_strategy),
         "docx": DocxReader(chunking_strategy=chunking_strategy),
-        "doc": DocxReader(chunking_strategy=chunking_strategy),
         "json": JSONReader(chunking_strategy=chunking_strategy),
-        "md": MarkdownReader(chunking_strategy=chunking_strategy),
         "markdown": MarkdownReader(chunking_strategy=chunking_strategy),
         "sql": SQLScriptReader(chunking_strategy=chunking_strategy),
     }
@@ -97,9 +95,7 @@ def main():
             "csv": "Fixed",
             "txt": "Recursive",
             "docx": "Document",
-            "doc": "Document",
             "json": "Recursive",
-            "md": "Recursive",
             "markdown": "Recursive",
             "sql": "Semantic",
         }
@@ -220,7 +216,7 @@ def main():
     # Update accepted types to include SQL files
     uploaded_files = st.sidebar.file_uploader(
         "Add Documents (.pdf, .csv, .txt, .docx, .json, .md, .sql)",
-        type=["pdf", "csv", "txt", "docx", "doc", "json", "md", "markdown", "sql"],
+        type=["pdf", "csv", "txt", "docx", "json", "md", "sql"],
         accept_multiple_files=True
     )
     if uploaded_files and not prompt:
