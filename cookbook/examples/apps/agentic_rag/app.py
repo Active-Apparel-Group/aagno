@@ -1,7 +1,6 @@
 import os
 import tempfile
 from typing import List
-
 import nest_asyncio
 import requests
 import streamlit as st
@@ -12,6 +11,9 @@ from agno.document.reader.csv_reader import CSVReader
 from agno.document.reader.pdf_reader import PDFReader
 from agno.document.reader.text_reader import TextReader
 from agno.document.reader.website_reader import WebsiteReader
+from agno.document.reader.docx_reader import DocxReader
+from agno.document.reader.json_reader import JSONReader
+from markdown_reader import MarkdownReader
 from agno.utils.log import logger
 from utils import (
     CUSTOM_CSS,
@@ -45,6 +47,11 @@ def get_reader(file_type: str):
         "pdf": PDFReader(),
         "csv": CSVReader(),
         "txt": TextReader(),
+        "docx": DocxReader(),
+        "doc": DocxReader(),
+        "json": JSONReader(),
+        "md": MarkdownReader(),
+        "markdown": MarkdownReader(),
     }
     return readers.get(file_type.lower(), None)
 
@@ -166,7 +173,9 @@ def main():
             st.sidebar.info("URL already loaded in knowledge base")
 
     uploaded_files = st.sidebar.file_uploader(
-        "Add Documents (.pdf, .csv, or .txt)", type=["pdf", "csv", "txt"], accept_multiple_files=True
+    "Add Documents (.pdf, .csv, .txt, .docx, .json, .md)",
+    type=["pdf", "csv", "txt", "docx", "doc", "json", "md", "markdown"],
+    accept_multiple_files=True
     )
     if uploaded_files and not prompt:
         progress_text = "Loading documents into knowledge base..."
