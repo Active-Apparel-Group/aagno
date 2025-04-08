@@ -115,10 +115,16 @@ def main():
             "sql": "Document",
         }
     st.markdown("<h1 class='main-title'>Agentic RAG </h1>", unsafe_allow_html=True)
+    if "show_reasoning_trace" not in st.session_state:
+        st.session_state["show_reasoning_trace"] = True
+    
+    st.sidebar.checkbox("Show Tool Reasoning Trace", key="show_reasoning_trace")
+
+    
     if st.session_state.use_reasoning_agent:
         st.markdown("<p class='subtitle'>🧠 Reasoning Mode Enabled — Multi-step analysis active</p>", unsafe_allow_html=True)
     else:
-        st.markdown("<p class='subtitle'>🔍 Contextual RAG — Fast, relevant document search</p>", unsafe_allow_html=True)
+        st.markdown("<p class='subtitle'>🔍 Agentic RAG – Contextual knowledge-based retrieval</p>", unsafe_allow_html=True)
 
     st.markdown(
         "<p class='subtitle'>Your intelligent research assistant powered by Agno</p>",
@@ -329,7 +335,13 @@ def main():
             with st.spinner("🤔 Thinking..."):
                 response = ""
                 try:
-                    run_response = agentic_rag_agent.run(question, stream=True, show_full_reasoning=True)
+                    run_response = agentic_rag_agent.run(
+                    question,
+                    stream=True,
+                    show_full_reasoning=st.session_state.show_reasoning_trace,
+                    stream_intermediate_steps=st.session_state.show_reasoning_trace
+                )
+
                     for _resp_chunk in run_response:
                         if _resp_chunk.tools and len(_resp_chunk.tools) > 0:
                             display_tool_calls(tool_calls_container, _resp_chunk.tools)

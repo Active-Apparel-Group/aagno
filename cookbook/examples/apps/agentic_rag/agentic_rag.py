@@ -42,6 +42,9 @@ from agno.models.openai import OpenAIChat
 from agno.reasoning.default import get_default_reasoning_agent
 from agno.storage.agent.postgres import PostgresAgentStorage
 from agno.tools.duckduckgo import DuckDuckGoTools
+from tools.reasoning_tools import ReasoningTools
+from agno.tools.thinking import ThinkingTools
+from agno.tools.yfinance import YFinanceTools
 from agno.vectordb.pgvector import PgVector
 import os
 import logging
@@ -85,7 +88,22 @@ def get_reasoning_agent(
 
     reasoning_agent = get_default_reasoning_agent(
         reasoning_model=model,
-        tools=[DuckDuckGoTools()],
+        tools=[
+            ThinkingTools(add_instructions=True),
+            ReasoningTools(
+                think=True,
+                analyze=True,
+                add_instructions=True,
+                add_few_shot=True,
+            ),
+            YFinanceTools(  # Optional but powerful
+                stock_price=True,
+                analyst_recommendations=True,
+                company_info=True,
+                company_news=True,
+            ),
+            DuckDuckGoTools()
+        ],
         min_steps=3,
         max_steps=8,
         use_json_mode=False,
@@ -93,10 +111,11 @@ def get_reasoning_agent(
         telemetry=True,
         debug_mode=debug_mode,
         instructions=[
-            "Think aloud in clear, structured steps.",
-            "Justify your reasoning at each step.",
-            "If using a tool, explain why it's needed first.",
-            "Summarize findings only after full analysis.",
+            "Use the think tool to plan before acting.",
+            "Jot down intermediate ideas and assumptions.",
+            "Analyze tool results for correctness.",
+            "Summarize only after full reasoning is complete.",
+            "Use tables and bullet points where helpful.",
         ],
     )
 
