@@ -190,7 +190,7 @@ def main():
                 docs: List[Document] = scraper.read(input_url)
 
             if docs:
-                agentic_rag_agent.knowledge.load_documents(docs, upsert=True)
+                agentic_rag_agent.knowledge.load_documents(docs, upsert=False)
                 st.session_state.loaded_urls.add(input_url)
                 st.sidebar.success("URL added to knowledge base")
             else:
@@ -230,7 +230,7 @@ def main():
                 if reader:
                     try:
                         docs = reader.read(uploaded_file)
-                        agentic_rag_agent.knowledge.load_documents(docs, upsert=True)
+                        agentic_rag_agent.knowledge.load_documents(docs, upsert=False)
                         st.session_state.loaded_files.add(file_identifier)
                         st.toast(f"✅ {uploaded_file.name} loaded", icon="📄")
                     except Exception as e:
