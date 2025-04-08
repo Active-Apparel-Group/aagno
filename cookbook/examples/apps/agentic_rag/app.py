@@ -1,6 +1,7 @@
 import os
 import tempfile
 from typing import List
+
 import nest_asyncio
 import requests
 import streamlit as st
@@ -14,6 +15,8 @@ from agno.document.reader.website_reader import WebsiteReader
 from agno.document.reader.docx_reader import DocxReader
 from agno.document.reader.json_reader import JSONReader
 from markdown_reader import MarkdownReader
+from sql_reader import SQLScriptReader
+from agno.document.chunking.agentic import AgenticChunking
 from agno.utils.log import logger
 from utils import (
     CUSTOM_CSS,
@@ -43,15 +46,17 @@ def restart_agent():
     st.rerun()
 
 def get_reader(file_type: str):
+    chunking_strategy = AgenticChunking()
     readers = {
-        "pdf": PDFReader(),
-        "csv": CSVReader(),
-        "txt": TextReader(),
-        "docx": DocxReader(),
-        "doc": DocxReader(),
-        "json": JSONReader(),
-        "md": MarkdownReader(),
-        "markdown": MarkdownReader(),
+        "pdf": PDFReader(chunking_strategy=chunking_strategy),
+        "csv": CSVReader(chunking_strategy=chunking_strategy),
+        "txt": TextReader(chunking_strategy=chunking_strategy),
+        "docx": DocxReader(chunking_strategy=chunking_strategy),
+        "doc": DocxReader(chunking_strategy=chunking_strategy),
+        "json": JSONReader(chunking_strategy=chunking_strategy),
+        "md": MarkdownReader(chunking_strategy=chunking_strategy),
+        "markdown": MarkdownReader(chunking_strategy=chunking_strategy),
+        "sql": SQLScriptReader(chunking_strategy=chunking_strategy),
     }
     return readers.get(file_type.lower(), None)
 
@@ -172,10 +177,11 @@ def main():
         else:
             st.sidebar.info("URL already loaded in knowledge base")
 
+    # Update accepted types to include SQL files
     uploaded_files = st.sidebar.file_uploader(
-    "Add Documents (.pdf, .csv, .txt, .docx, .json, .md)",
-    type=["pdf", "csv", "txt", "docx", "doc", "json", "md", "markdown"],
-    accept_multiple_files=True
+        "Add Documents (.pdf, .csv, .txt, .docx, .json, .md, .sql)",
+        type=["pdf", "csv", "txt", "docx", "doc", "json", "md", "markdown", "sql"],
+        accept_multiple_files=True
     )
     if uploaded_files and not prompt:
         progress_text = "Loading documents into knowledge base..."

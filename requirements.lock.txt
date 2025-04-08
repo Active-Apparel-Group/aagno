@@ -168,6 +168,8 @@ pypdf==5.4.0
     #   -r cookbook/examples/apps/agentic_rag/requirements.in
 python-dateutil==2.9.0.post0
     # via pandas
+python-docx
+    # via requirements.txt
 python-dotenv==1.1.0
     # via
     #   agno
