@@ -39,6 +39,7 @@ from agno.models.anthropic import Claude
 from agno.models.google import Gemini
 from agno.models.groq import Groq
 from agno.models.openai import OpenAIChat
+from agno.reasoning.default import get_default_reasoning_agent
 from agno.storage.agent.postgres import PostgresAgentStorage
 from agno.tools.duckduckgo import DuckDuckGoTools
 from agno.vectordb.pgvector import PgVector
@@ -50,6 +51,62 @@ if not db_url:
     logging.warning("DATABASE_URL not set. Falling back to localhost config.")
     db_url = "postgresql+psycopg://ai:ai@localhost:5532/ai"
 
+def get_reasoning_agent(
+    model_id: str = "openai:gpt-4o",
+    user_id: Optional[str] = None,
+    session_id: Optional[str] = None,
+    debug_mode: bool = True,
+) -> Agent:
+    provider, model_name = model_id.split(":")
+
+    if provider == "openai":
+        model = OpenAIChat(id=model_name)
+    elif provider == "google":
+        model = Gemini(id=model_name)
+    elif provider == "anthropic":
+        model = Claude(id=model_name)
+    elif provider == "groq":
+        model = Groq(id=model_name)
+    else:
+        raise ValueError(f"Unsupported model provider: {provider}")
+
+    memory = PgMemoryDb(table_name="reasoning_agent_memory", db_url=db_url)
+    storage = PostgresAgentStorage(table_name="reasoning_agent_storage", db_url=db_url)
+
+    knowledge = AgentKnowledge(
+        vector_db=PgVector(
+            db_url=db_url,
+            table_name="agentic_rag_documents",
+            schema="ai",
+            embedder=OpenAIEmbedder(id="text-embedding-ada-002", dimensions=1536),
+        ),
+        num_documents=10,
+    )
+
+    reasoning_agent = get_default_reasoning_agent(
+        reasoning_model=model,
+        tools=[DuckDuckGoTools()],
+        min_steps=3,
+        max_steps=8,
+        use_json_mode=False,
+        monitoring=True,
+        telemetry=True,
+        debug_mode=debug_mode,
+        instructions=[
+            "Think aloud in clear, structured steps.",
+            "Justify your reasoning at each step.",
+            "If using a tool, explain why it's needed first.",
+            "Summarize findings only after full analysis.",
+        ],
+    )
+
+    reasoning_agent.memory = memory
+    reasoning_agent.storage = storage
+    reasoning_agent.knowledge = knowledge
+    reasoning_agent.session_id = session_id
+    reasoning_agent.user_id = user_id
+
+    return reasoning_agent
 
 def get_agentic_rag_agent(
     model_id: str = "openai:gpt-4o",

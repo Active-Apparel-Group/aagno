@@ -6,6 +6,7 @@ import nest_asyncio
 import requests
 import streamlit as st
 from agentic_rag import get_agentic_rag_agent
+from agentic_rag import get_reasoning_agent
 from agno.agent import Agent
 from agno.document import Document
 from agno.document.reader.csv_reader import CSVReader
@@ -49,6 +50,16 @@ st.set_page_config(
 
 st.markdown(CUSTOM_CSS, unsafe_allow_html=True)
 
+# Add selector to set reasoning mode
+if "use_reasoning_agent" not in st.session_state:
+    st.session_state.use_reasoning_agent = False
+
+st.sidebar.markdown("#### 🧠 Reasoning Agent")
+st.session_state.use_reasoning_agent = st.sidebar.checkbox(
+    "Enable Reasoning Agent",
+    value=st.session_state.use_reasoning_agent
+)
+
 def restart_agent():
     logger.debug("---*--- Restarting agent ---*---")
     st.session_state["agentic_rag_agent"] = None
@@ -78,9 +89,15 @@ def initialize_agent(model_id: str):
         or st.session_state["agentic_rag_agent"] is None
     ):
         logger.info(f"---*--- Creating {model_id} Agent ---*---")
-        agent: Agent = get_agentic_rag_agent(
-            model_id=model_id,
-            session_id=st.session_state.get("agentic_rag_agent_session_id"),
+        reasoning = st.session_state.use_reasoning_agent
+        agent: Agent = (
+            get_reasoning_agent(model_id=model_id)
+            if reasoning else
+            get_agentic_rag_agent(
+                model_id=model_id,
+                session_id=st.session_state.get("agentic_rag_agent_session_id"),
+                debug_mode=True
+            )
         )
         st.session_state["agentic_rag_agent"] = agent
         st.session_state["agentic_rag_agent_session_id"] = agent.session_id
@@ -98,6 +115,11 @@ def main():
             "sql": "Document",
         }
     st.markdown("<h1 class='main-title'>Agentic RAG </h1>", unsafe_allow_html=True)
+    if st.session_state.use_reasoning_agent:
+        st.markdown("<p class='subtitle'>🧠 Reasoning Mode Enabled — Multi-step analysis active</p>", unsafe_allow_html=True)
+    else:
+        st.markdown("<p class='subtitle'>🔍 Contextual RAG — Fast, relevant document search</p>", unsafe_allow_html=True)
+
     st.markdown(
         "<p class='subtitle'>Your intelligent research assistant powered by Agno</p>",
         unsafe_allow_html=True,
@@ -125,7 +147,7 @@ def main():
         or st.session_state.get("current_model") != model_id
     ):
         logger.info("---*--- Creating new Agentic RAG  ---*---")
-        agentic_rag_agent = get_agentic_rag_agent(model_id=model_id)
+        agentic_rag_agent = initialize_agent(model_id=model_id)
         st.session_state["agentic_rag_agent"] = agentic_rag_agent
         st.session_state["current_model"] = model_id
     else:
@@ -307,7 +329,7 @@ def main():
             with st.spinner("🤔 Thinking..."):
                 response = ""
                 try:
-                    run_response = agentic_rag_agent.run(question, stream=True)
+                    run_response = agentic_rag_agent.run(question, stream=True, show_full_reasoning=True)
                     for _resp_chunk in run_response:
                         if _resp_chunk.tools and len(_resp_chunk.tools) > 0:
                             display_tool_calls(tool_calls_container, _resp_chunk.tools)
