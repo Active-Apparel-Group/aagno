@@ -101,7 +101,9 @@ jsonschema==4.23.0
 jsonschema-specifications==2024.10.1
     # via jsonschema
 lxml==5.3.2
-    # via duckduckgo-search
+    # via
+    #   duckduckgo-search
+    #   python-docx
 markdown-it-py==3.0.0
     # via rich
 markupsafe==3.0.2
@@ -170,8 +172,8 @@ pypdf==5.4.0
     #   -r cookbook/examples/apps/agentic_rag/requirements.in
 python-dateutil==2.9.0.post0
     # via pandas
-python-docx
-    # via requirements.txt
+python-docx==1.1.2
+    # via -r cookbook/examples/apps/agentic_rag/requirements.in
 python-dotenv==1.1.0
     # via
     #   agno
@@ -243,6 +245,7 @@ typing-extensions==4.13.1
     #   psycopg
     #   pydantic
     #   pydantic-core
+    #   python-docx
     #   referencing
     #   sqlalchemy
     #   streamlit
