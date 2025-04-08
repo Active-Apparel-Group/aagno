@@ -20,7 +20,6 @@ from agno.document.chunking.agentic import AgenticChunking
 from agno.document.chunking.document import DocumentChunking
 from agno.document.chunking.fixed import FixedSizeChunking
 from agno.document.chunking.recursive import RecursiveChunking
-from agno.document.chunking.semantic import SemanticChunking
 from agno.utils.log import logger
 from utils import (
     CUSTOM_CSS,
@@ -35,7 +34,6 @@ from utils import (
 CHUNKING_STRATEGIES = {
     "Agentic": AgenticChunking,
     "Fixed": FixedSizeChunking,
-    "Semantic": SemanticChunking,
     "Recursive": RecursiveChunking,
     "Document": DocumentChunking,
 }
@@ -97,7 +95,7 @@ def main():
             "docx": "Document",
             "json": "Recursive",
             "markdown": "Recursive",
-            "sql": "Semantic",
+            "sql": "Document",
         }
     st.markdown("<h1 class='main-title'>Agentic RAG </h1>", unsafe_allow_html=True)
     st.markdown(
