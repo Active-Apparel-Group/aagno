@@ -14,3 +14,6 @@ psycopg-binary
 psycopg
 pgvector
 aiofiles
+chonkie[semantic]
+chonkie
+tiktoken
