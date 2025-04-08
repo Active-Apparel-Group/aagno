@@ -17,6 +17,11 @@ from agno.document.reader.json_reader import JSONReader
 from markdown_reader import MarkdownReader
 from sql_reader import SQLScriptReader
 from agno.document.chunking.agentic import AgenticChunking
+from agno.document.chunking.document import DocumentChunking
+from agno.document.chunking.fixed import FixedSizeChunking
+from agno.document.chunking.recursive import RecursiveChunking
+from agno.document.chunking.semantic import SemanticChunking
+from agno.document.chunking.strategy import ChunkingStrategy
 from agno.utils.log import logger
 from utils import (
     CUSTOM_CSS,
@@ -27,6 +32,15 @@ from utils import (
     rename_session_widget,
     session_selector_widget,
 )
+
+CHUNKING_STRATEGIES = {
+    "Agentic": AgenticChunking,
+    "Fixed": FixedSizeChunking,
+    "Semantic": SemanticChunking,
+    "Recursive": RecursiveChunking,
+    "Document": DocumentChunking,
+}
+
 
 nest_asyncio.apply()
 st.set_page_config(
@@ -46,7 +60,9 @@ def restart_agent():
     st.rerun()
 
 def get_reader(file_type: str):
-    chunking_strategy = AgenticChunking()
+    strategy_name = st.session_state.chunking_strategy_per_type.get(file_type.lower(), "Fixed")
+    chunking_strategy = CHUNKING_STRATEGIES[strategy_name]()
+
     readers = {
         "pdf": PDFReader(chunking_strategy=chunking_strategy),
         "csv": CSVReader(chunking_strategy=chunking_strategy),
@@ -59,6 +75,7 @@ def get_reader(file_type: str):
         "sql": SQLScriptReader(chunking_strategy=chunking_strategy),
     }
     return readers.get(file_type.lower(), None)
+
 
 def initialize_agent(model_id: str):
     if (
@@ -75,6 +92,18 @@ def initialize_agent(model_id: str):
     return st.session_state["agentic_rag_agent"]
 
 def main():
+    if "chunking_strategy_per_type" not in st.session_state:
+        st.session_state.chunking_strategy_per_type = {
+            "pdf": "Agentic",
+            "csv": "Fixed",
+            "txt": "Recursive",
+            "docx": "Document",
+            "doc": "Document",
+            "json": "Recursive",
+            "md": "Recursive",
+            "markdown": "Recursive",
+            "sql": "Semantic",
+        }
     st.markdown("<h1 class='main-title'>Agentic RAG </h1>", unsafe_allow_html=True)
     st.markdown(
         "<p class='subtitle'>Your intelligent research assistant powered by Agno</p>",
@@ -176,6 +205,18 @@ def main():
             alert.empty()
         else:
             st.sidebar.info("URL already loaded in knowledge base")
+        
+    st.sidebar.markdown("#### 🧩 Chunking Strategies")
+    for file_type in sorted(st.session_state.chunking_strategy_per_type.keys()):
+        current_strategy = st.session_state.chunking_strategy_per_type[file_type]
+        selected = st.sidebar.selectbox(
+            f"{file_type.upper()} Chunking",
+            options=list(CHUNKING_STRATEGIES.keys()),
+            index=list(CHUNKING_STRATEGIES.keys()).index(current_strategy),
+            key=f"chunking_{file_type}",
+        )
+        st.session_state.chunking_strategy_per_type[file_type] = selected
+
 
     # Update accepted types to include SQL files
     uploaded_files = st.sidebar.file_uploader(
