@@ -42,9 +42,8 @@ from agno.models.openai import OpenAIChat
 from agno.reasoning.default import get_default_reasoning_agent
 from agno.storage.agent.postgres import PostgresAgentStorage
 from agno.tools.duckduckgo import DuckDuckGoTools
-from tools.reasoning_tools import ReasoningTools
+from tools.reasoning import ReasoningTools
 from agno.tools.thinking import ThinkingTools
-from agno.tools.yfinance import YFinanceTools
 from agno.vectordb.pgvector import PgVector
 import os
 import logging
@@ -95,12 +94,6 @@ def get_reasoning_agent(
                 analyze=True,
                 add_instructions=True,
                 add_few_shot=True,
-            ),
-            YFinanceTools(  # Optional but powerful
-                stock_price=True,
-                analyst_recommendations=True,
-                company_info=True,
-                company_news=True,
             ),
             DuckDuckGoTools()
         ],
