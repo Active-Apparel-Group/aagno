@@ -120,12 +120,21 @@ def get_reasoning_agent(
 
     return reasoning_agent
 
+class AgenticRAGAgent(Agent):
+    def update_instructions(self, new_instructions: list):
+        """Update the agent's instructions dynamically."""
+        self.instructions = new_instructions
+
+    def update_tools(self, new_tools: list):
+        """Update the agent's tools dynamically."""
+        self.tools = new_tools
+
 def get_agentic_rag_agent(
     model_id: str = "openai:gpt-4o",
     user_id: Optional[str] = None,
     session_id: Optional[str] = None,
     debug_mode: bool = True,
-) -> Agent:
+) -> AgenticRAGAgent:
     """Get an Agentic RAG Agent with Memory."""
     # Parse model provider and name
     provider, model_name = model_id.split(":")
@@ -158,11 +167,11 @@ def get_agentic_rag_agent(
             schema="ai",
             embedder=OpenAIEmbedder(id="text-embedding-ada-002", dimensions=1536),
         ),
-        num_documents=7,  # Retrieve 7 most relevant documents
+        num_documents=50,  # Retrieve 7 most relevant documents
     )
 
     # Create the Agent
-    agentic_rag_agent: Agent = Agent(
+    agentic_rag_agent: AgenticRAGAgent = AgenticRAGAgent(
         name="agentic_rag_agent",
         session_id=session_id,  # Track session ID for persistent conversations
         user_id=user_id,

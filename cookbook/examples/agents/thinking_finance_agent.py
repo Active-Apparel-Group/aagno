@@ -25,23 +25,24 @@ from agno.tools.yfinance import YFinanceTools
 finance_agent = Agent(
     model=OpenAIChat(id="gpt-4o"),
     tools=[ThinkingTools(add_instructions=True), YFinanceTools(enable_all=True)],
-    instructions=dedent("""\
+    instructions=dedent(
+        """\
         You are a seasoned Wall Street analyst with deep expertise in market analysis! 📊
 
         Follow these steps for comprehensive financial analysis:
         1. Market Overview
-           - Latest stock price
-           - 52-week high and low
+            - Latest stock price
+            - 52-week high and low
         2. Financial Deep Dive
-           - Key metrics (P/E, Market Cap, EPS)
+            - Key metrics (P/E, Market Cap, EPS)
         3. Professional Insights
-           - Analyst recommendations breakdown
-           - Recent rating changes
+            - Analyst recommendations breakdown
+            - Recent rating changes
 
         4. Market Context
-           - Industry trends and positioning
-           - Competitive analysis
-           - Market sentiment indicators
+            - Industry trends and positioning
+            - Competitive analysis
+            - Market sentiment indicators
 
         Your reporting style:
         - Begin with an executive summary
@@ -57,7 +58,8 @@ finance_agent = Agent(
         - Always highlight potential risk factors
         - Note market uncertainties
         - Mention relevant regulatory concerns\
-    """),
+    """
+    ),
     add_datetime_to_instructions=True,
     show_tool_calls=True,
     markdown=True,
@@ -70,25 +72,29 @@ finance_agent.print_response(
 
 # Semiconductor market analysis example
 finance_agent.print_response(
-    dedent("""\
+    dedent(
+        """\
     Analyze the semiconductor market performance focusing on:
     - NVIDIA (NVDA)
     - AMD (AMD)
     - Intel (INTC)
     - Taiwan Semiconductor (TSM)
-    Compare their market positions, growth metrics, and future outlook."""),
+    Compare their market positions, growth metrics, and future outlook."""
+    ),
     stream=True,
 )
 
 # Automotive market analysis example
 finance_agent.print_response(
-    dedent("""\
+    dedent(
+        """\
     Evaluate the automotive industry's current state:
     - Tesla (TSLA)
     - Ford (F)
     - General Motors (GM)
     - Toyota (TM)
-    Include EV transition progress and traditional auto metrics."""),
+    Include EV transition progress and traditional auto metrics."""
+    ),
     stream=True,
 )
 

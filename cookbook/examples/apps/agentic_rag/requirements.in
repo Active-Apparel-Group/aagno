@@ -17,3 +17,4 @@ aiofiles
 chonkie[semantic]
 chonkie
 tiktoken
+yfinance

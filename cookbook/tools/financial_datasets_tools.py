@@ -5,7 +5,7 @@ financial statements, stock prices, news, insider trades, and more.
 
 Prerequisites:
 - Set the environment variable `FINANCIAL_DATASETS_API_KEY` with your Financial Datasets API key.
-  You can obtain the API key by creating an account at https://financialdatasets.ai
+    You can obtain the API key by creating an account at https://financialdatasets.ai
 """
 
 from agno.agent import Agent

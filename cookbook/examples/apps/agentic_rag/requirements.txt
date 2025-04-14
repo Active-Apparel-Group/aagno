@@ -251,3 +251,4 @@ watchdog==6.0.0
 >>>>>>> 2bdd0ee8 (Dockerise and modularise the process of)
 websockets==15.0.1
     # via google-genai
+yfinance

@@ -7,6 +7,7 @@ import requests
 import streamlit as st
 from agentic_rag import get_agentic_rag_agent
 from agentic_rag import get_reasoning_agent
+from cookbook.agents.finance_agents import get_finance_agent, get_financial_datasets_agent
 from agno.agent import Agent
 from agno.document import Document
 from agno.document.reader.csv_reader import CSVReader
@@ -83,7 +84,7 @@ def get_reader(file_type: str):
     return readers.get(file_type.lower(), None)
 
 
-def initialize_agent(model_id: str):
+def initialize_agent(model_id: str, research_logic: str = None, research_tools: list = None):
     if (
         "agentic_rag_agent" not in st.session_state
         or st.session_state["agentic_rag_agent"] is None
@@ -99,6 +100,10 @@ def initialize_agent(model_id: str):
                 debug_mode=True
             )
         )
+        if research_logic:
+            agent.update_instructions([research_logic])
+        if research_tools:
+            agent.update_tools(research_tools)
         st.session_state["agentic_rag_agent"] = agent
         st.session_state["agentic_rag_agent_session_id"] = agent.session_id
     return st.session_state["agentic_rag_agent"]
@@ -116,7 +121,7 @@ def main():
         }
     st.markdown("<h1 class='main-title'>Agentic RAG </h1>", unsafe_allow_html=True)
     if "show_reasoning_trace" not in st.session_state:
-        st.session_state["show_reasoning_trace"] = True
+        st.session_state["show_reasoning_trace"] = False
     
     st.sidebar.checkbox("Show Tool Reasoning Trace", key="show_reasoning_trace")
 
@@ -174,7 +179,7 @@ def main():
         for _run in agent_runs:
             if _run.message is not None:
                 add_message(_run.message.role, _run.message.content)
-            if _run.response is not None:
+            if (_run.response is not None):
                 add_message("assistant", _run.response.content, _run.response.tools)
     else:
         logger.debug("No run history found")
@@ -314,6 +319,152 @@ def main():
             use_container_width=True,
         ):
             st.sidebar.success("Chat history exported!")
+
+    # Add a new section for "Gather Research" in the Streamlit UI
+    st.sidebar.markdown("#### 📚 Gather Research")
+
+    # Input for research topic
+    research_topic = st.sidebar.text_input("Enter Research Topic")
+
+    # Ensure research output is formatted for human readability and markdown storage
+    if st.sidebar.button("Gather Research"):
+        if research_topic:
+            try:
+                # Use the reasoning agent to gather research
+                agent = initialize_agent(model_id="openai:gpt-4o")
+                with st.spinner("🔄 Gathering research, please wait..."):
+                    response = agent.run(f"Gather research on the topic: {research_topic}")
+
+                # Format the research output for human readability and markdown storage
+                formatted_response = f"### Research on {research_topic}\n\n" + "\n".join([f"- {line.strip()}" for line in response.splitlines() if line.strip()])
+
+                # Display the research output
+                st.markdown("### Research Output")
+                st.markdown(formatted_response)
+
+                # Add button to save research to vector DB
+                if st.button("Add Research to Knowledge Base"):
+                    try:
+                        agentic_rag_agent.knowledge.load_documents([Document(content=formatted_response)], upsert=True)
+                        st.success("Research added to knowledge base successfully!")
+                    except Exception as e:
+                        st.error(f"Failed to add research to knowledge base: {str(e)}")
+
+                st.success("✅ Research completed successfully!")
+            except Exception as e:
+                st.error(f"Error gathering research: {str(e)}")
+        else:
+            st.warning("Please enter a research topic.")
+
+    # Add a new section for "Research Agent Team" in the Streamlit UI
+    st.sidebar.markdown("#### 🤝 Research Agent Team")
+
+    # Input for research query
+    research_query = st.sidebar.text_input("Enter Research Query")
+
+    # Button to trigger the research agent team
+    if st.sidebar.button("Run Research Agent Team"):
+        if research_query:
+            try:
+                # Initialize the research agent team
+                from agno.agent import Agent
+                from agno.models.openai import OpenAIChat
+                from agno.team.team import Team
+                from agno.tools.duckduckgo import DuckDuckGoTools
+                from agno.tools.yfinance import YFinanceTools
+
+                # Define agents
+                web_agent = Agent(
+                    name="Web Agent",
+                    role="Search the web for information",
+                    model=OpenAIChat(id="gpt-4o"),
+                    tools=[DuckDuckGoTools()],
+                    instructions="""You are an experienced web researcher. Provide clear, concise, and well-sourced information.""",
+                    show_tool_calls=True,
+                    markdown=True,
+                )
+
+                finance_agent = Agent(
+                    name="Finance Agent",
+                    role="Analyze financial data",
+                    model=OpenAIChat(id="gpt-4o"),
+                    tools=[YFinanceTools(stock_price=True, analyst_recommendations=True)],
+                    instructions="""You are a financial analyst. Provide detailed and structured financial insights.""",
+                    show_tool_calls=True,
+                    markdown=True,
+                )
+
+                # Create the team
+                research_team = Team(
+                    members=[web_agent, finance_agent],
+                    model=OpenAIChat(id="gpt-4o"),
+                    mode="coordinate",
+                    success_criteria="""Provide a comprehensive and well-structured research report.""",
+                    instructions="""Coordinate the agents to deliver a cohesive research output.""",
+                    show_tool_calls=True,
+                    markdown=True,
+                )
+
+                # Run the team with the user's query
+                # Correct the error by ensuring the response is converted to a string before calling replace
+                response = research_team.run(research_query)
+
+                # Convert response to string if necessary and format it
+                if not isinstance(response, str):
+                    response = str(response)
+
+                formatted_response = f"### Research Report: {research_query}\n\n" + response.replace("\n", "\n\n")
+
+                # Display the formatted results
+                st.markdown("### Research Agent Team Results")
+                st.markdown(formatted_response)
+            except Exception as e:
+                st.error(f"Error running research agent team: {str(e)}")
+        else:
+            st.warning("Please enter a research query.")
+
+    # Add a new UI section for modifying the research agent instructions
+    st.sidebar.markdown("#### 🛠️ Research Agent Configuration")
+
+    # Dropdown for selecting research logic interpretation
+    research_logic_options = [
+        "Default Logic",
+        "Aggressive Research",
+        "Conservative Research",
+        "Balanced Research"
+    ]
+    selected_research_logic = st.sidebar.selectbox(
+        "Select Research Logic",
+        options=research_logic_options,
+        help="Choose how the research agent interprets and applies research logic."
+    )
+
+    # Multi-select toggles for research tools
+    research_tool_options = [
+            "Web Search",
+            "Financial Analysis",
+            "Market Trends",
+            "Competitor Analysis",
+            "Thinking Tools",
+            "Financial Datasets",
+    ]
+    selected_research_tools = st.sidebar.multiselect(
+        "Select Research Tools",
+        options=research_tool_options,
+        default=["Web Search"],
+        help="Select the tools the research agent should use during research."
+    )
+
+    # Apply the custom configuration to the research agent
+    if st.sidebar.button("Apply Configuration"):
+        try:
+            # Update the research agent's logic and tools
+            agentic_rag_agent.update_instructions([selected_research_logic])
+            agentic_rag_agent.update_tools(selected_research_tools)
+
+            st.sidebar.success("Research agent configuration updated successfully!")
+        except Exception as e:
+            st.sidebar.error(f"Failed to update research agent configuration: {str(e)}")
 
     for message in st.session_state["messages"]:
         if message["role"] in ["user", "assistant"]:

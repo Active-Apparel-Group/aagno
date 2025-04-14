@@ -260,3 +260,4 @@ watchdog==6.0.0
     # via streamlit
 websockets==15.0.1
     # via google-genai
+yfinance

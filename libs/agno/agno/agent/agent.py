@@ -4497,3 +4497,15 @@ class Agent:
                 break
 
             self.print_response(message=message, stream=stream, markdown=markdown, **kwargs)
+
+    def update_system_prompt(self, new_prompt: str) -> None:
+        """Update the system message prompt for the Agent.
+
+        Args:
+            new_prompt (str): The new system message to set.
+        """
+        if not isinstance(new_prompt, str):
+            raise ValueError("The new prompt must be a string.")
+
+        self.system_message = new_prompt
+        log_info(f"System prompt updated to: {new_prompt}")
